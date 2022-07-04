@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func ShortUrl(w http.ResponseWriter, r *http.Request) {
+func ShortURL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed", http.StatusBadRequest)
 		return
@@ -33,15 +33,14 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	w.WriteHeader(307)
-	w.Header().Set("Location", "originUrl")
-	log.Println(r.URL)
-	w.Write([]byte("get method"))
 
+	w.WriteHeader(307)
+	w.Header().Set("Location", r.URL.Path)
+	log.Println(r.URL.Path)
 }
 
 func main() {
-	http.HandleFunc("/", ShortUrl)
+	http.HandleFunc("/", ShortURL)
 	http.HandleFunc("/get/", GetID)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
