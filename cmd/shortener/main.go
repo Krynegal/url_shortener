@@ -1,31 +1,28 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"strings"
 )
 
-func HelloWorld(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello World"))
-	q := r.URL.Query().Get("query")
-	log.Printf("search string: %s", q)
-	if q == "" {
-		http.Error(w, "The query parameter is missing", http.StatusBadRequest)
-		return
-	}
-	// обработка входящего url
-
+func ShortUrl(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Only POST requests are allowed", http.StatusBadRequest)
 		return
 	}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "can't read body", 400)
+		return
+	}
+	log.Println(string(b))
+	w.WriteHeader(201)
+	w.Write(b)
 }
 
-func GetId(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("get method"))
+func GetID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/get/")
 	if id == "" {
 		http.Error(w, "wrong id", http.StatusBadRequest)
@@ -36,10 +33,15 @@ func GetId(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	w.WriteHeader(307)
+	w.Header().Set("Location", "originUrl")
+	log.Println(r.URL)
+	w.Write([]byte("get method"))
+
 }
 
 func main() {
-	http.HandleFunc("/", HelloWorld)
-	http.HandleFunc("/get/", GetId)
+	http.HandleFunc("/", ShortUrl)
+	http.HandleFunc("/get/", GetID)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
