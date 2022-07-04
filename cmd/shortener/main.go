@@ -33,10 +33,10 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	w.WriteHeader(307)
-	w.Header().Set("Location", r.URL.Path)
 	log.Println(r.URL.Path)
+
+	w.Header().Set("Location", "http://localhost:8080/")
+	w.WriteHeader(307)
 }
 
 func main() {
