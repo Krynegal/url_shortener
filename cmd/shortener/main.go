@@ -21,11 +21,12 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//log.Println(r.Header.Get("Host"))
-	shortUrl := strings.Split(string(b), "/")
-	urls[string(b)] = shortUrl[len(shortUrl)-1]
-	//log.Println(urls)
+	urlArr := strings.Split(string(b), "/")
+	shortUrl := urlArr[len(urlArr)-1]
+	urls[string(b)] = shortUrl
+	log.Println(urls)
 	w.WriteHeader(201)
-	w.Write(b)
+	w.Write([]byte(shortUrl))
 }
 
 func GetID(w http.ResponseWriter, r *http.Request) {
@@ -34,13 +35,13 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	//log.Println(vars)
+	log.Println(vars)
 	id := vars["id"]
 	if id == "" {
 		http.Error(w, "wrong id", http.StatusBadRequest)
 		return
 	}
-	//log.Println(id)
+	log.Println(id)
 	for k, v := range urls {
 		if id == v {
 			w.Header().Set("Location", k)
