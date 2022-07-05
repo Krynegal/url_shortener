@@ -17,12 +17,12 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b, err := io.ReadAll(r.Body)
-	if err != nil {
+	if err != nil || string(b) == "" {
 		http.Error(w, "can't read body", 400)
 		return
 	}
 	url, err := url2.Parse(string(b))
-	if err != nil || len(strings.Split(url.Path, "/")) > 2 {
+	if err != nil || len(strings.Split(url.Path, "/")) > 2 || url.Host == "" || url.Scheme != "" {
 		http.Error(w, "not valid URI", 400)
 		return
 	}
