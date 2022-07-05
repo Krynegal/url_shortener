@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
+	"strings"
 )
 
 var urls = make(map[string]string)
@@ -20,11 +20,10 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "can't read body", 400)
 		return
 	}
-	id := 0
-	index := strconv.Itoa(id)
-	urls[string(b)] = index
-	id++
-	log.Println(urls)
+	//log.Println(r.Header.Get("Host"))
+	shortUrl := strings.Split(string(b), "/")
+	urls[string(b)] = shortUrl[len(shortUrl)-1]
+	//log.Println(urls)
 	w.WriteHeader(201)
 	w.Write(b)
 }
@@ -35,13 +34,13 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	log.Println(vars)
+	//log.Println(vars)
 	id := vars["id"]
 	if id == "" {
 		http.Error(w, "wrong id", http.StatusBadRequest)
 		return
 	}
-	log.Println(id)
+	//log.Println(id)
 	for k, v := range urls {
 		if id == v {
 			w.Header().Set("Location", k)
@@ -54,5 +53,5 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", ShortURL)
 	r.HandleFunc("/{id}", GetID)
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe("localhost:8080", r))
 }
