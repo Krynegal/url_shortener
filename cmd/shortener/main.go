@@ -22,7 +22,7 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	url, err := url2.Parse(string(b))
-	if err != nil || len(strings.Split(url.Path, "/")) > 2 {
+	if err != nil || len(strings.Split(url.Path, "/")) > 2 || url.Host == "" || url.Scheme != "" {
 		http.Error(w, "not valid URI", 400)
 		return
 	}
