@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 var urls = make(map[string]string)
@@ -22,7 +22,7 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 	id := 0
 	index := strconv.Itoa(id)
-	urls[index] = string(b)
+	urls[string(b)] = index
 	id++
 	log.Println(urls)
 	w.WriteHeader(201)
@@ -34,22 +34,25 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	id := strings.TrimPrefix(r.URL.Path, "/get/")
+	vars := mux.Vars(r)
+	log.Println(vars)
+	id := vars["id"]
 	if id == "" {
 		http.Error(w, "wrong id", http.StatusBadRequest)
 		return
 	}
 	log.Println(id)
 	for k, v := range urls {
-		if id == k {
-			w.Header().Set("Location", v)
+		if id == v {
+			w.Header().Set("Location", k)
 			w.WriteHeader(307)
 		}
 	}
 }
 
 func main() {
-	http.HandleFunc("/", ShortURL)
-	http.HandleFunc("/get/", GetID)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r := mux.NewRouter()
+	r.HandleFunc("/", ShortURL)
+	r.HandleFunc("/{id}", GetID)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
