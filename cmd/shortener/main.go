@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	url2 "net/url"
 	"strings"
 )
 
@@ -20,9 +21,13 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "can't read body", 400)
 		return
 	}
-	//log.Println(r.Header.Get("Host"))
-	urlArr := strings.Split(string(b), "/")
-	shortUrl := urlArr[len(urlArr)-1]
+	url, err := url2.Parse(string(b))
+	if err != nil || len(strings.Split(url.Path, "/")) > 2 {
+		http.Error(w, "not valid URI", 400)
+		return
+	}
+	log.Println(url.Path)
+	shortUrl := url.Path
 	urls[string(b)] = shortUrl
 	log.Println(urls)
 	w.WriteHeader(201)
