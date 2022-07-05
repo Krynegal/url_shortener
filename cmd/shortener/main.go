@@ -28,7 +28,7 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println(url.Path)
 	shortUrl := url.Path
-	urls[string(b)] = shortUrl
+	urls[string(b)] = shortUrl[1:]
 	log.Println(urls)
 	w.WriteHeader(201)
 	w.Write([]byte(shortUrl))
