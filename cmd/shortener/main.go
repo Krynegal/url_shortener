@@ -4,8 +4,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
+
+var urls = make(map[string]string)
 
 func ShortURL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -17,26 +20,32 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "can't read body", 400)
 		return
 	}
-	log.Println(string(b))
+	id := 0
+	index := strconv.Itoa(id)
+	urls[index] = string(b)
+	id++
+	log.Println(urls)
 	w.WriteHeader(201)
 	w.Write(b)
 }
 
 func GetID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	id := strings.TrimPrefix(r.URL.Path, "/get/")
 	if id == "" {
 		http.Error(w, "wrong id", http.StatusBadRequest)
 		return
 	}
 	log.Println(id)
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
-		return
+	for k, v := range urls {
+		if id == k {
+			w.Header().Set("Location", v)
+			w.WriteHeader(307)
+		}
 	}
-	log.Println(r.URL.Path)
-
-	w.Header().Set("Location", "http://localhost:8080/")
-	w.WriteHeader(307)
 }
 
 func main() {
