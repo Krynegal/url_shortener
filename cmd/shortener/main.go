@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
@@ -30,8 +31,7 @@ func genShortenURL(s string) string {
 	u := strconv.Itoa(id)
 	id++
 	urls[u] = s
-	return u
-	//return fmt.Sprintf("http://%s/%s", "localhost:8080", u)
+	return fmt.Sprintf("http://%s/%s", "localhost:8080", u)
 }
 
 func GetID(w http.ResponseWriter, r *http.Request) {
@@ -45,9 +45,14 @@ func GetID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
+func DefaultHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", ShortURL).Methods(http.MethodPost)
 	r.HandleFunc("/{id}", GetID).Methods(http.MethodGet)
-	log.Fatal(http.ListenAndServe("localhost:8080", r))
+	r.HandleFunc("/", DefaultHandler)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
