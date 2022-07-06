@@ -1,63 +1,57 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
-	url2 "net/url"
-	"strings"
+	"strconv"
 )
 
 var urls = make(map[string]string)
+var id int
 
 func ShortURL(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed", http.StatusBadRequest)
-		return
-	}
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "can't read body", 400)
 		return
 	}
-	url, err := url2.Parse(string(b))
-	if err != nil || len(strings.Split(url.Path, "/")) > 2 {
-		http.Error(w, "not valid URI", 400)
-		return
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	log.Println(url.Path)
-	shortUrl := url.Path
-	urls[string(b)] = shortUrl
+
+	url := string(b)
+	key := generateShortenUrl(url)
+	urls[key] = url
 	log.Println(urls)
-	w.WriteHeader(201)
-	w.Write([]byte(shortUrl))
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(url))
+}
+
+func generateShortenUrl(s string) string {
+	u := strconv.Itoa(id)
+	id++
+	urls[u] = s
+	return fmt.Sprintf("http://%s/%s", "localhost:8080", u)
 }
 
 func GetID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	vars := mux.Vars(r)
-	log.Println(vars)
 	id := vars["id"]
-	if id == "" {
-		http.Error(w, "wrong id", http.StatusBadRequest)
+	log.Println(id)
+	if v, ok := urls[id]; ok {
+		http.Redirect(w, r, v, http.StatusTemporaryRedirect)
 		return
 	}
-	log.Println(id)
-	for k, v := range urls {
-		if id == v {
-			w.Header().Set("Location", k)
-			w.WriteHeader(307)
-		}
-	}
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", ShortURL)
-	r.HandleFunc("/{id}", GetID)
+	r.HandleFunc("/", ShortURL).Methods(http.MethodPost)
+	r.HandleFunc("/{id}", GetID).Methods(http.MethodGet)
 	log.Fatal(http.ListenAndServe("localhost:8080", r))
 }
