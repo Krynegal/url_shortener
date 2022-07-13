@@ -28,12 +28,6 @@ func ShortURL(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("http://localhost:8080/" + key))
 }
 
-//func genShortenURL(s string) string {
-//	u := strconv.Itoa(id)
-//	id++
-//	return fmt.Sprintf("http://%s/%s", "localhost:8080", u)
-//}
-
 func GetID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
