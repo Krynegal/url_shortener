@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	s := storage.NewStorage(storage.Memory)
+	s := storage.NewStorage()
 	r := handlers.NewHandler(s).Mux
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
