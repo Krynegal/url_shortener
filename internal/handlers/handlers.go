@@ -4,17 +4,16 @@ import (
 	"github.com/Krynegal/url_shortener.git/internal/storage"
 	"github.com/gorilla/mux"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 )
 
 type Handler struct {
 	Mux     *mux.Router
-	Storage storage.Storage
+	Storage storage.IStorage
 }
 
-func NewHandler(storage storage.Storage) *Handler {
+func NewHandler(storage storage.IStorage) *Handler {
 	h := &Handler{
 		Mux:     mux.NewRouter(),
 		Storage: storage,
@@ -43,17 +42,10 @@ func (h *Handler) GetID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["id"]
-		log.Printf("GetID: %s", id)
-		v, ok := h.Storage.Unshorten(id)
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			//http.Redirect(w, r, v, http.StatusTemporaryRedirect)
+		if v, ok := h.Storage.Unshorten(id); ok {
+			http.Redirect(w, r, v, http.StatusTemporaryRedirect)
 			return
 		}
-		log.Printf("Unshorten return url: %s with ok: %v", v, ok)
-
-		w.Header().Set("Location", v)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		w.Write([]byte(""))
+		http.Error(w, "Unknown ID", http.StatusBadRequest)
 	}
 }

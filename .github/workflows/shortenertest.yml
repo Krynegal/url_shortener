@@ -42,7 +42,7 @@ jobs:
           mv $GITHUB_WORKSPACE/.tools/shortenertest /usr/local/bin/shortenertest
           mv $GITHUB_WORKSPACE/.tools/random /usr/local/bin/random
 
-      - name: Build server binary
+      - name: Build app binary
         run: |
           cd cmd/shortener
           go build -o shortener
