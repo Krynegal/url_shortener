@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-type IStorage interface {
+type Storager interface {
 	Shorten(string) int
 	Unshorten(string) (string, bool)
 }
