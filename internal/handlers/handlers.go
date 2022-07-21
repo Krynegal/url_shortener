@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Krynegal/url_shortener.git/internal/configs"
 	"github.com/Krynegal/url_shortener.git/internal/storage"
 	"github.com/gorilla/mux"
 	"io"
@@ -15,6 +16,7 @@ import (
 type Handler struct {
 	Mux     *mux.Router
 	Storage storage.IStorage
+	Config  *configs.Config
 }
 
 type RequestAPI struct {
@@ -25,10 +27,11 @@ type ResponseAPI struct {
 	Result string `json:"result"`
 }
 
-func NewHandler(storage storage.IStorage) *Handler {
+func NewHandler(storage storage.IStorage, config *configs.Config) *Handler {
 	h := &Handler{
 		Mux:     mux.NewRouter(),
 		Storage: storage,
+		Config:  config,
 	}
 	h.Mux.Handle("/", h.ShortURL()).Methods(http.MethodPost)
 	h.Mux.Handle("/api/shorten", h.Shorten()).Methods(http.MethodPost)
@@ -53,7 +56,7 @@ func (h *Handler) Shorten() http.HandlerFunc {
 		log.Printf("req: %v", req)
 		newID := h.Storage.Shorten(req.URL)
 
-		resp := ResponseAPI{Result: fmt.Sprintf("http://localhost:8080/%s", strconv.Itoa(newID))}
+		resp := ResponseAPI{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, strconv.Itoa(newID))}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err = json.NewEncoder(w).Encode(resp); err != nil {
@@ -74,7 +77,7 @@ func (h *Handler) ShortURL() http.HandlerFunc {
 		url := string(b)
 		newID := h.Storage.Shorten(url)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://localhost:8080/" + strconv.Itoa(newID)))
+		w.Write([]byte(fmt.Sprintf("%s/%s", h.Config.BaseURL, strconv.Itoa(newID))))
 	}
 }
 

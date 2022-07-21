@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"github.com/Krynegal/url_shortener.git/internal/configs"
 	"github.com/Krynegal/url_shortener.git/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,7 +12,10 @@ import (
 	"testing"
 )
 
-var s = storage.NewStorage()
+var (
+	s   = storage.NewStorage()
+	cfg = configs.GetConfigs()
+)
 
 const (
 	url1 = "http://someHost.ya/qwerty"
@@ -19,7 +23,7 @@ const (
 )
 
 func testRequest(t *testing.T, method, path string, body string) (*http.Response, string) {
-	ts := httptest.NewServer(NewHandler(s).Mux)
+	ts := httptest.NewServer(NewHandler(s, cfg).Mux)
 	defer ts.Close()
 
 	req, err := http.NewRequest(method, ts.URL+path, bytes.NewBuffer([]byte(body)))
