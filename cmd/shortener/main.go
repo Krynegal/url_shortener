@@ -9,9 +9,12 @@ import (
 )
 
 func main() {
-	cfg := configs.GetConfigs()
-	s := storage.NewStorage()
+	cfg := configs.Get()
+	s, err := storage.NewStorage(cfg)
+	if err != nil {
+		panic("can't create storage")
+	}
 	r := handlers.NewHandler(s, cfg).Mux
-	log.Printf("%s", cfg.ServerAddress)
+	log.Printf("server run on address: %s", cfg.ServerAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
