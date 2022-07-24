@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/Krynegal/url_shortener.git/internal/configs"
 	"github.com/Krynegal/url_shortener.git/internal/handlers"
 	"github.com/Krynegal/url_shortener.git/internal/storage"
@@ -10,6 +11,12 @@ import (
 
 func main() {
 	cfg := configs.Get()
+
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "Server address")
+	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "Base URL")
+	flag.StringVar(&cfg.FileStorage, "f", cfg.FileStorage, "File Storage Path")
+	flag.Parse()
+
 	s, err := storage.NewStorage(cfg)
 	if err != nil {
 		panic("can't create storage")
