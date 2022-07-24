@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
 	"io"
 	"log"
 	"net/http"
@@ -37,7 +38,7 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h.Mux.HandleFunc("/", h.ShortURL).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/shorten", h.Shorten).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
-	//h.Mux.Use(middleware.GzipMiddlware)
+	h.Mux.Use(middleware.GzipMiddlware)
 	return h
 }
 
