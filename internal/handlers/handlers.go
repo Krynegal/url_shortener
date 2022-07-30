@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
