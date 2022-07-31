@@ -18,11 +18,15 @@ type FileStorage struct {
 	memStorage  *MemStorage
 }
 
-func NewFileStorage(filePath string) (*FileStorage, error) {
+func NewFileStorage(filePath string) (Storager, error) {
 	fs := &FileStorage{
 		storagePath: filePath,
 		memStorage:  NewMemStorage(),
 	}
+	if err := fs.ReadURLsFromFile(); err != nil {
+		return nil, err
+	}
+	fmt.Printf("storage: %v", fs.memStorage.store)
 	return fs, nil
 }
 
