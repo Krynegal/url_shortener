@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/Krynegal/url_shortener.git/internal/configs"
-	"strconv"
 )
 
 type Storager interface {
@@ -10,49 +10,17 @@ type Storager interface {
 	Unshorten(string) (string, error)
 }
 
-type Storage struct {
-	memStore *MemStorage
-	file     *FileStorage
-}
-
-func NewStorage(cfg *configs.Config) (*Storage, error) {
-	memStorage := NewMemStorage()
-	var fs *FileStorage
+func NewStorage(cfg *configs.Config) (Storager, error) {
 	if cfg.FileStorage != "" {
-		var err error
-		fs, err = NewFileStorage(cfg.FileStorage)
+		fs, err := NewFileStorage(cfg.FileStorage)
 		if err != nil {
 			return nil, err
 		}
-		err = fs.ReadURLsFromFile(memStorage)
-		if err != nil {
+		if err = fs.ReadURLsFromFile(); err != nil {
 			return nil, err
 		}
+		fmt.Printf("storage: %v", fs.memStorage.store)
+		return fs, nil
 	}
-	return &Storage{
-		memStore: memStorage,
-		file:     fs,
-	}, nil
-}
-
-func (s *Storage) Shorten(u string) (int, error) {
-	v, err := s.memStore.Shorten(u)
-	if err != nil {
-		return -1, err
-	}
-	if s.file != nil {
-		err := s.file.WriteURLInFile(strconv.Itoa(v), s.memStore.store[strconv.Itoa(v)])
-		if err != nil {
-			return -1, err
-		}
-	}
-	return v, nil
-}
-
-func (s *Storage) Unshorten(id string) (string, error) {
-	url, err := s.memStore.Unshorten(id)
-	if err != nil {
-		return "", err
-	}
-	return url, nil
+	return NewMemStorage(), nil
 }

@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	cfg    = configs.Get()
+	cfg    = configs.NewConfig()
 	s, err = storage.NewStorage(cfg)
 )
 

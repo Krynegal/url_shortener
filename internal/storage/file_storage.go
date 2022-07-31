@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type URLObj struct {
@@ -14,17 +15,37 @@ type URLObj struct {
 
 type FileStorage struct {
 	storagePath string
+	memStorage  *MemStorage
 }
 
 func NewFileStorage(filePath string) (*FileStorage, error) {
 	fs := &FileStorage{
 		storagePath: filePath,
+		memStorage:  NewMemStorage(),
 	}
-
 	return fs, nil
 }
 
-func (fs *FileStorage) ReadURLsFromFile(memStorage *MemStorage) error {
+func (fs *FileStorage) Shorten(u string) (int, error) {
+	id, err := fs.memStorage.Shorten(u)
+	if err != nil {
+		return -1, err
+	}
+	if err = fs.WriteURLInFile(strconv.Itoa(id), fs.memStorage.store[strconv.Itoa(id)]); err != nil {
+		return -1, err
+	}
+	return id, nil
+}
+
+func (fs *FileStorage) Unshorten(id string) (string, error) {
+	url, err := fs.memStorage.Unshorten(id)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
+}
+
+func (fs *FileStorage) ReadURLsFromFile() error {
 	file, err := os.OpenFile(fs.storagePath, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return err
@@ -48,8 +69,8 @@ func (fs *FileStorage) ReadURLsFromFile(memStorage *MemStorage) error {
 		if err != nil {
 			break
 		}
-		memStorage.store[u.Key] = u.URL
-		memStorage.counter++
+		fs.memStorage.store[u.Key] = u.URL
+		fs.memStorage.counter++
 		fmt.Printf("URLObj: %v\n", u)
 	}
 	return nil

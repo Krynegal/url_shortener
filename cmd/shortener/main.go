@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	cfg := configs.Get()
+	cfg := configs.NewConfig()
 
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "Server address")
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "Base URL")

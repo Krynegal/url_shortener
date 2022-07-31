@@ -11,12 +11,11 @@ type Config struct {
 	FileStorage   string `env:"FILE_STORAGE_PATH"`
 }
 
-//envDefault:"~/GolandProjects/url_shortener/file.txt"
-func Get() *Config {
-	cfg := Config{}
-	if err := env.Parse(&cfg); err != nil {
+func NewConfig() *Config {
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("configs: %v", cfg)
-	return &cfg
+	log.Printf("configs: %v", *cfg)
+	return cfg
 }
