@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Krynegal/url_shortener.git/internal"
 	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
 	"io"
 	"log"
@@ -29,20 +30,52 @@ type ResponseAPI struct {
 	Result string `json:"result"`
 }
 
+type URL struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+type ResponseURLs struct {
+	URLs []URL
+}
+
 func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h := &Handler{
 		Mux:     mux.NewRouter(),
 		Storage: storage,
 		Config:  config,
 	}
+	h.Mux.Use(middleware.GzipMiddlware, middleware.AuthMiddleware)
 	h.Mux.HandleFunc("/", h.ShortURL).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/shorten", h.Shorten).Methods(http.MethodPost)
+	h.Mux.HandleFunc("/api/user/urls", h.GetUrls).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
-	h.Mux.Use(middleware.GzipMiddlware)
 	return h
 }
 
+func (h *Handler) GetUrls(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
+	res := h.Storage.GetAllURLs(session.UserID)
+	if len(res) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	u := []URL{}
+	for k, v := range res {
+		u = append(u, URL{OriginalURL: v, ShortURL: fmt.Sprintf("%s/%s", h.Config.BaseURL, k)})
+	}
+	fmt.Printf("u: %v\n", u)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(u); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
+
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -56,7 +89,7 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("req: %v", req)
-	newID, err := h.Storage.Shorten(req.URL)
+	newID, err := h.Storage.Shorten(session.UserID, req.URL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -72,6 +105,8 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ShortURL(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
+
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -79,7 +114,7 @@ func (h *Handler) ShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := string(b)
-	newID, err := h.Storage.Shorten(url)
+	newID, err := h.Storage.Shorten(session.UserID, url)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

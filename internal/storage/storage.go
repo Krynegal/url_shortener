@@ -5,8 +5,9 @@ import (
 )
 
 type Storager interface {
-	Shorten(string) (int, error)
+	Shorten(string, string) (int, error)
 	Unshorten(string) (string, error)
+	GetAllURLs(string) map[string]string
 }
 
 func NewStorage(cfg *configs.Config) (Storager, error) {
