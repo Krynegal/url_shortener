@@ -1,39 +1,21 @@
 package storage
 
 import (
-	"strconv"
-	"sync"
+	"github.com/Krynegal/url_shortener.git/internal/configs"
 )
 
-type IStorage interface {
-	Shorten(string) int
-	Unshorten(string) (string, bool)
+type Storager interface {
+	Shorten(string) (int, error)
+	Unshorten(string) (string, error)
 }
 
-type Storage struct {
-	counter int
-	mu      sync.Mutex
-	store   map[string]string
-}
-
-func NewStorage() *Storage {
-	return &Storage{
-		counter: 0,
-		store:   make(map[string]string),
+func NewStorage(cfg *configs.Config) (Storager, error) {
+	if cfg.FileStorage != "" {
+		fs, err := NewFileStorage(cfg.FileStorage)
+		if err != nil {
+			return nil, err
+		}
+		return fs, nil
 	}
-}
-
-func (s *Storage) Shorten(u string) int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.counter++
-	s.store[strconv.Itoa(s.counter)] = u
-	return s.counter
-}
-
-func (s *Storage) Unshorten(id string) (string, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	url, ok := s.store[id]
-	return url, ok
+	return NewMemStorage(), nil
 }
