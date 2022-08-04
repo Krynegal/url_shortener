@@ -2,18 +2,23 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Krynegal/url_shortener.git/internal"
-	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/Krynegal/url_shortener.git/internal"
 	"github.com/Krynegal/url_shortener.git/internal/configs"
+	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
 	"github.com/Krynegal/url_shortener.git/internal/storage"
+
+	"database/sql"
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 )
 
 type Handler struct {
@@ -49,8 +54,32 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h.Mux.HandleFunc("/", h.ShortURL).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/shorten", h.Shorten).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/user/urls", h.GetUrls).Methods(http.MethodGet)
+	h.Mux.HandleFunc("/ping", h.Ping).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
 	return h
+}
+
+func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("postgres", h.Config.DB)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}()
+
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) GetUrls(w http.ResponseWriter, r *http.Request) {
