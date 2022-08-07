@@ -1,9 +1,12 @@
 package storage
 
 import (
+	"errors"
 	"github.com/Krynegal/url_shortener.git/internal/configs"
 	"github.com/Krynegal/url_shortener.git/internal/storage/postgres"
 )
+
+var ErrKeyExists = errors.New("url is already shorten")
 
 type Storager interface {
 	Shorten(string, string) (int, error)
