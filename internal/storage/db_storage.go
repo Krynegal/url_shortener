@@ -47,6 +47,7 @@ func (db *DB) GetAllURLs(uid string) map[string]string {
 		if cerr != nil {
 			err = cerr
 		}
+		_ = rows.Err()
 	}()
 
 	for rows.Next() {

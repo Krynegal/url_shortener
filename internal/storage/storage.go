@@ -2,7 +2,7 @@ package storage
 
 import (
 	"github.com/Krynegal/url_shortener.git/internal/configs"
-	"github.com/Krynegal/url_shortener.git/internal/storage/postgresDB"
+	"github.com/Krynegal/url_shortener.git/internal/storage/postgres"
 )
 
 type Storager interface {
@@ -13,7 +13,7 @@ type Storager interface {
 
 func NewStorage(cfg *configs.Config) (Storager, error) {
 	if cfg.DB != "" {
-		postgresDB, err := postgresDB.NewPostgresDB(cfg.DB)
+		postgresDB, err := postgres.NewPostgresDB(cfg.DB)
 		if err != nil {
 			return nil, err
 		}

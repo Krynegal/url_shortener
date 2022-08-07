@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -44,6 +45,16 @@ type ResponseURLs struct {
 	URLs []URL
 }
 
+type BatchRequest struct {
+	CorrID      string `json:"correlation_id"`
+	OriginalURL string `json:"original_url"`
+}
+
+type BatchResponse struct {
+	CorrID   string `json:"correlation_id"`
+	ShortURL string `json:"short_url"`
+}
+
 func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h := &Handler{
 		Mux:     mux.NewRouter(),
@@ -54,6 +65,7 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h.Mux.HandleFunc("/", h.ShortURL).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/shorten", h.Shorten).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/user/urls", h.GetUrls).Methods(http.MethodGet)
+	h.Mux.HandleFunc("/api/shorten/batch", h.Batch).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/ping", h.Ping).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
 	return h
@@ -78,6 +90,43 @@ func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.PingContext(ctx); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) Batch(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "can't read body", http.StatusBadRequest)
+		return
+	}
+
+	var batch = make([]BatchRequest, 0)
+	err = json.Unmarshal(body, &batch)
+	if err != nil {
+		fmt.Printf("Not Decoded: %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var resp = make([]BatchResponse, 0)
+	for _, v := range batch {
+		s, err := h.Storage.Shorten(session.UserID, v.OriginalURL)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		out := fmt.Sprintf("%s/%s", h.Config.BaseURL, strconv.Itoa(s))
+		resp = append(resp, BatchResponse{v.CorrID, out})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
