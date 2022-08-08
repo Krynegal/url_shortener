@@ -144,7 +144,6 @@ func (h *Handler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	for k, v := range res {
 		u = append(u, URL{OriginalURL: v, ShortURL: fmt.Sprintf("%s/%s", h.Config.BaseURL, k)})
 	}
-	fmt.Printf("u: %v\n", u)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(u); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
