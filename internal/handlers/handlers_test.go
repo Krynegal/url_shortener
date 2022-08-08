@@ -25,7 +25,7 @@ const (
 	url3 = "http:/hhhost.com/wsxedc"
 )
 
-func testRequest(t *testing.T, method, path, body string) (*http.Response, string) {
+func testRequest(t *testing.T, method, path string, body string) (*http.Response, string) {
 	ts := httptest.NewServer(NewHandler(s, cfg).Mux)
 	defer ts.Close()
 

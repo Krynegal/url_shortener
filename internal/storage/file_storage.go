@@ -3,6 +3,7 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -25,11 +26,12 @@ func NewFileStorage(filePath string) (Storager, error) {
 	if err := fs.ReadURLsFromFile(); err != nil {
 		return nil, err
 	}
+	fmt.Printf("storage: %v", fs.memStorage.store)
 	return fs, nil
 }
 
-func (fs *FileStorage) Shorten(uid string, u string) (int, error) {
-	id, err := fs.memStorage.Shorten(uid, u)
+func (fs *FileStorage) Shorten(u string) (int, error) {
+	id, err := fs.memStorage.Shorten(u)
 	if err != nil {
 		return -1, err
 	}
@@ -45,11 +47,6 @@ func (fs *FileStorage) Unshorten(id string) (string, error) {
 		return "", err
 	}
 	return url, nil
-}
-
-func (fs *FileStorage) GetAllURLs(uid string) map[string]string {
-	usersURLsIds := fs.memStorage.GetAllURLs(uid)
-	return usersURLsIds
 }
 
 func (fs *FileStorage) ReadURLsFromFile() error {
@@ -78,6 +75,7 @@ func (fs *FileStorage) ReadURLsFromFile() error {
 		}
 		fs.memStorage.store[u.Key] = u.URL
 		fs.memStorage.counter++
+		fmt.Printf("URLObj: %v\n", u)
 	}
 	return nil
 }
