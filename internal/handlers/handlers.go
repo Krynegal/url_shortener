@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -167,15 +168,21 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("req: %v", req)
+
+	var status = http.StatusCreated
 	newID, err := h.Storage.Shorten(session.UserID, req.URL)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if errors.Is(err, storage.ErrKeyExists) {
+			status = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	resp := ResponseAPI{Result: fmt.Sprintf("%s/%s", h.Config.BaseURL, strconv.Itoa(newID))}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(status)
 	if err = json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, "troubles with encode response", http.StatusBadRequest)
 		return
@@ -192,13 +199,18 @@ func (h *Handler) ShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := string(b)
+	var status = http.StatusCreated
 	newID, err := h.Storage.Shorten(session.UserID, url)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if errors.Is(err, storage.ErrKeyExists) {
+			status = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(status)
 	w.Write([]byte(fmt.Sprintf("%s/%s", h.Config.BaseURL, strconv.Itoa(newID))))
 }
 

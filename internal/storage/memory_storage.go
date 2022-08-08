@@ -28,10 +28,21 @@ func (s *MemStorage) Shorten(uid string, u string) (int, error) {
 	if u == "" {
 		return -1, errors.New("url is empty")
 	}
+
+	for id, v := range s.store {
+		if v == u {
+			strID, err := strconv.Atoi(id)
+			if err != nil {
+				return -1, err
+			}
+			return strID, ErrKeyExists
+		}
+	}
+
 	s.counter++
 	s.store[strconv.Itoa(s.counter)] = u
 	s.userToIDs[uid] = append(s.userToIDs[uid], s.counter)
-	fmt.Printf("s.userToIDs[uid]: %v", s.userToIDs)
+	fmt.Printf("s.store: %v\n", s.store)
 	return s.counter, nil
 }
 
