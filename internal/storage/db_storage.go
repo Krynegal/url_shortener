@@ -1,6 +1,11 @@
 package storage
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
+)
 
 type DB struct {
 	db *sql.DB
@@ -14,12 +19,22 @@ func NewDB(database *sql.DB) *DB {
 }
 
 func (db *DB) Shorten(uid string, url string) (int, error) {
+	var id int
+	if url == "" {
+		return -1, errors.New("url is empty")
+	}
 	_, err := db.db.Exec("INSERT INTO URLS (original, created_by) VALUES ($1, $2);", url, uid)
 	if err != nil {
+		if err, ok := err.(*pq.Error); ok && err.Code == pgerrcode.UniqueViolation {
+			row := db.db.QueryRow("SELECT url_id FROM URLS WHERE original = ($1)", url)
+			if err := row.Scan(&id); err != nil {
+				return -1, err
+			}
+			return id, ErrKeyExists
+		}
 		return -1, err
 	}
 	row := db.db.QueryRow("SELECT url_id FROM URLS WHERE original = ($1)", url)
-	var id int
 	if err := row.Scan(&id); err != nil {
 		return -1, err
 	}
@@ -47,6 +62,7 @@ func (db *DB) GetAllURLs(uid string) map[string]string {
 		if cerr != nil {
 			err = cerr
 		}
+		_ = rows.Err()
 	}()
 
 	for rows.Next() {
