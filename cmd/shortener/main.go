@@ -15,6 +15,7 @@ func main() {
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "Server address")
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "Base URL")
 	flag.StringVar(&cfg.FileStorage, "f", cfg.FileStorage, "File Storage Path")
+	flag.StringVar(&cfg.DB, "d", cfg.DB, "Data base path string")
 	flag.Parse()
 
 	s, err := storage.NewStorage(cfg)
