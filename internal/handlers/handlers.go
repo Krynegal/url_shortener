@@ -69,9 +69,9 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	return h
 }
 
-func (h *Handler) Ping(db storage.Storager) http.HandlerFunc {
+func (h *Handler) Ping(st storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		d, ok := db.(*storage.DB)
+		db, ok := st.(*storage.DB)
 		if !ok {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -81,7 +81,7 @@ func (h *Handler) Ping(db storage.Storager) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
 
-		if err := d.Ping(ctx); err != nil {
+		if err := db.Ping(ctx); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

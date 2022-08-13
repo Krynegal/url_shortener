@@ -8,15 +8,6 @@ import (
 	"github.com/lib/pq"
 )
 
-type DBStorager interface {
-	Storager
-	Ping(ctx context.Context) error
-}
-
-type DB struct {
-	db *sql.DB
-}
-
 const (
 	URLTable = `
 	CREATE TABLE IF NOT EXISTS URLS
@@ -28,7 +19,17 @@ const (
 	`
 )
 
+type DBStorager interface {
+	Storager
+	Ping(ctx context.Context) error
+}
+
+type DB struct {
+	db *sql.DB
+}
+
 func NewDatabaseStorage(dataSourceName string) (DBStorager, error) {
+
 	database, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -44,13 +45,6 @@ func NewDatabaseStorage(dataSourceName string) (DBStorager, error) {
 	}
 	return db, nil
 }
-
-//func NewDBStorage(database *sql.DB) *DB {
-//	db := &DB{
-//		db: database,
-//	}
-//	return db
-//}
 
 func (db *DB) Ping(ctx context.Context) error {
 	if err := db.db.PingContext(ctx); err != nil {
@@ -113,6 +107,5 @@ func (db *DB) GetAllURLs(uid string) map[string]string {
 		}
 		allURLs[url] = orig
 	}
-
 	return allURLs
 }

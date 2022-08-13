@@ -20,13 +20,6 @@ func NewStorage(cfg *configs.Config) (Storager, error) {
 			return nil, err
 		}
 		return db, nil
-		//postgresDB, err := postgres.NewDatabaseStorage(cfg.DB)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//
-		//db := NewDB(postgresDB)
-		//return db, nil
 	}
 	if cfg.FileStorage != "" {
 		fs, err := NewFileStorage(cfg.FileStorage)
