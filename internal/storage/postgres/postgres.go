@@ -15,7 +15,7 @@ const (
 	`
 )
 
-func NewPostgresDB(dataSourceName string) (*sql.DB, error) {
+func NewDatabaseStorage(dataSourceName string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err

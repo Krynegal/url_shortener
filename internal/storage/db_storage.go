@@ -1,11 +1,17 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
 )
+
+//type DBStorager interface {
+//	Storager
+//	Ping(ctx context.Context) error
+//}
 
 type DB struct {
 	db *sql.DB
@@ -16,6 +22,13 @@ func NewDB(database *sql.DB) *DB {
 		db: database,
 	}
 	return db
+}
+
+func (db *DB) Ping(ctx context.Context) error {
+	if err := db.db.PingContext(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *DB) Shorten(uid string, url string) (int, error) {
@@ -35,7 +48,7 @@ func (db *DB) Shorten(uid string, url string) (int, error) {
 		return -1, err
 	}
 	row := db.db.QueryRow("SELECT url_id FROM URLS WHERE original = ($1)", url)
-	if err := row.Scan(&id); err != nil {
+	if err = row.Scan(&id); err != nil {
 		return -1, err
 	}
 	return id, nil
@@ -67,7 +80,7 @@ func (db *DB) GetAllURLs(uid string) map[string]string {
 
 	for rows.Next() {
 		var url, orig string
-		if err := rows.Scan(&url, &orig); err != nil {
+		if err = rows.Scan(&url, &orig); err != nil {
 			return nil
 		}
 		allURLs[url] = orig

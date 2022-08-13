@@ -16,7 +16,7 @@ type Storager interface {
 
 func NewStorage(cfg *configs.Config) (Storager, error) {
 	if cfg.DB != "" {
-		postgresDB, err := postgres.NewPostgresDB(cfg.DB)
+		postgresDB, err := postgres.NewDatabaseStorage(cfg.DB)
 		if err != nil {
 			return nil, err
 		}

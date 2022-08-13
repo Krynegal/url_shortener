@@ -6,21 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Krynegal/url_shortener.git/internal"
+	"github.com/Krynegal/url_shortener.git/internal/configs"
+	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
+	"github.com/Krynegal/url_shortener.git/internal/storage"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/Krynegal/url_shortener.git/internal"
-	"github.com/Krynegal/url_shortener.git/internal/configs"
-	"github.com/Krynegal/url_shortener.git/internal/handlers/middleware"
-	"github.com/Krynegal/url_shortener.git/internal/storage"
-
-	"database/sql"
-	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 )
 
 type Handler struct {
@@ -67,33 +64,52 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h.Mux.HandleFunc("/api/shorten", h.Shorten).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/api/user/urls", h.GetUrls).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/api/shorten/batch", h.Batch).Methods(http.MethodPost)
-	h.Mux.HandleFunc("/ping", h.Ping).Methods(http.MethodGet)
+	h.Mux.HandleFunc("/ping", h.Ping(h.Storage)).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
 	return h
 }
 
-func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("postgres", h.Config.DB)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+func (h *Handler) Ping(db storage.Storager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		d, ok := db.(*storage.DB)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	}()
 
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
+		ctx := r.Context()
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		if err := d.Ping(ctx); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }
+
+//func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
+//	db, err := sql.Open("postgres", h.Config.DB)
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer func() {
+//		err = db.Close()
+//		if err != nil {
+//			http.Error(w, err.Error(), http.StatusInternalServerError)
+//			return
+//		}
+//	}()
+//
+//	ctx := r.Context()
+//	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+//	defer cancel()
+//
+//	if err = db.PingContext(ctx); err != nil {
+//		w.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//}
 
 func (h *Handler) Batch(w http.ResponseWriter, r *http.Request) {
 	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
@@ -126,7 +142,7 @@ func (h *Handler) Batch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
+	if err = json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
