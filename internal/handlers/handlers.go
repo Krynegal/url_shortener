@@ -88,29 +88,6 @@ func (h *Handler) Ping(db storage.Storager) http.HandlerFunc {
 	}
 }
 
-//func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-//	db, err := sql.Open("postgres", h.Config.DB)
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer func() {
-//		err = db.Close()
-//		if err != nil {
-//			http.Error(w, err.Error(), http.StatusInternalServerError)
-//			return
-//		}
-//	}()
-//
-//	ctx := r.Context()
-//	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-//	defer cancel()
-//
-//	if err = db.PingContext(ctx); err != nil {
-//		w.WriteHeader(http.StatusInternalServerError)
-//		return
-//	}
-//}
-
 func (h *Handler) Batch(w http.ResponseWriter, r *http.Request) {
 	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
 

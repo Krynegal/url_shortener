@@ -8,21 +8,49 @@ import (
 	"github.com/lib/pq"
 )
 
-//type DBStorager interface {
-//	Storager
-//	Ping(ctx context.Context) error
-//}
+type DBStorager interface {
+	Storager
+	Ping(ctx context.Context) error
+}
 
 type DB struct {
 	db *sql.DB
 }
 
-func NewDB(database *sql.DB) *DB {
+const (
+	URLTable = `
+	CREATE TABLE IF NOT EXISTS URLS
+	(
+		url_id  serial PRIMARY KEY,
+		original text NOT NULL UNIQUE, 
+		created_by text
+	);
+	`
+)
+
+func NewDatabaseStorage(dataSourceName string) (DBStorager, error) {
+	database, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	if err = database.Ping(); err != nil {
+		return nil, err
+	}
+	if _, err = database.Exec(URLTable); err != nil {
+		return nil, err
+	}
 	db := &DB{
 		db: database,
 	}
-	return db
+	return db, nil
 }
+
+//func NewDBStorage(database *sql.DB) *DB {
+//	db := &DB{
+//		db: database,
+//	}
+//	return db
+//}
 
 func (db *DB) Ping(ctx context.Context) error {
 	if err := db.db.PingContext(ctx); err != nil {

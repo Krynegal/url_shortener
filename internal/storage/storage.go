@@ -3,7 +3,6 @@ package storage
 import (
 	"errors"
 	"github.com/Krynegal/url_shortener.git/internal/configs"
-	"github.com/Krynegal/url_shortener.git/internal/storage/postgres"
 )
 
 var ErrKeyExists = errors.New("url is already shorten")
@@ -16,13 +15,18 @@ type Storager interface {
 
 func NewStorage(cfg *configs.Config) (Storager, error) {
 	if cfg.DB != "" {
-		postgresDB, err := postgres.NewDatabaseStorage(cfg.DB)
+		db, err := NewDatabaseStorage(cfg.DB)
 		if err != nil {
 			return nil, err
 		}
-
-		db := NewDB(postgresDB)
 		return db, nil
+		//postgresDB, err := postgres.NewDatabaseStorage(cfg.DB)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//
+		//db := NewDB(postgresDB)
+		//return db, nil
 	}
 	if cfg.FileStorage != "" {
 		fs, err := NewFileStorage(cfg.FileStorage)
