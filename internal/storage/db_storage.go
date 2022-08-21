@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgtype"
 	"github.com/lib/pq"
 )
 
@@ -14,7 +16,8 @@ const (
 	(
 		url_id  serial PRIMARY KEY,
 		original text NOT NULL UNIQUE, 
-		created_by text
+		created_by text,
+		deleted boolean NOT NULL DEFAULT false
 	);
 	`
 )
@@ -22,6 +25,7 @@ const (
 type DBStorager interface {
 	Storager
 	Ping(ctx context.Context) error
+	Delete(string, []int) error
 }
 
 type DB struct {
@@ -29,7 +33,6 @@ type DB struct {
 }
 
 func NewDatabaseStorage(dataSourceName string) (DBStorager, error) {
-
 	database, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -48,6 +51,22 @@ func NewDatabaseStorage(dataSourceName string) (DBStorager, error) {
 
 func (db *DB) Ping(ctx context.Context) error {
 	if err := db.db.PingContext(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) Delete(uid string, urlIDs []int) error {
+	fmt.Println(urlIDs)
+	var a pgtype.Int8Array
+	a.Set(urlIDs)
+	rows, _ := db.db.Query("UPDATE URLS SET deleted=true WHERE created_by = $1 AND url_id = ANY($2);", uid, a)
+	err := rows.Close()
+	if err != nil {
+		return err
+	}
+	err = rows.Err()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -77,10 +96,14 @@ func (db *DB) Shorten(uid string, url string) (int, error) {
 }
 
 func (db *DB) Unshorten(id string) (string, error) {
-	row := db.db.QueryRow("SELECT original FROM URLS WHERE url_id = ($1)", id)
+	row := db.db.QueryRow("SELECT original, deleted FROM URLS WHERE url_id = ($1)", id)
 	var origURL string
-	if err := row.Scan(&origURL); err != nil {
+	var deleted bool
+	if err := row.Scan(&origURL, &deleted); err != nil {
 		return "", err
+	}
+	if deleted {
+		return "", ErrKeyDeleted
 	}
 	return origURL, nil
 }

@@ -21,9 +21,10 @@ import (
 )
 
 type Handler struct {
-	Mux     *mux.Router
-	Storage storage.Storager
-	Config  *configs.Config
+	Mux          *mux.Router
+	Storage      storage.Storager
+	Config       *configs.Config
+	batchUpdater *batchUpdater
 }
 
 type RequestAPI struct {
@@ -55,9 +56,10 @@ type BatchResponse struct {
 
 func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h := &Handler{
-		Mux:     mux.NewRouter(),
-		Storage: storage,
-		Config:  config,
+		Mux:          mux.NewRouter(),
+		Storage:      storage,
+		Config:       config,
+		batchUpdater: NewBatchUpdater(config.UpdateBatchSize),
 	}
 	h.Mux.Use(middleware.GzipMiddlware, middleware.AuthMiddleware)
 	h.Mux.HandleFunc("/", h.ShortURL).Methods(http.MethodPost)
@@ -66,7 +68,43 @@ func NewHandler(storage storage.Storager, config *configs.Config) *Handler {
 	h.Mux.HandleFunc("/api/shorten/batch", h.Batch).Methods(http.MethodPost)
 	h.Mux.HandleFunc("/ping", h.Ping(h.Storage)).Methods(http.MethodGet)
 	h.Mux.HandleFunc("/{id}", h.GetID).Methods(http.MethodGet)
+	go h.batchUpdater.deleteQueuedURLs(h.Storage)
+	h.Mux.HandleFunc("/api/user/urls", h.Delete).Methods(http.MethodDelete)
 	return h
+}
+
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value(internal.UserIDSessionKey).(internal.Session)
+
+	var deleteIDs []string
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "can't read body", http.StatusBadRequest)
+		return
+	}
+	if err = json.Unmarshal(body, &deleteIDs); err != nil {
+		http.Error(w, "can't unmarshall body", http.StatusBadRequest)
+		return
+	}
+
+	ids := make([]int, 0, len(deleteIDs))
+	for _, v := range deleteIDs {
+		id, err := strconv.Atoi(v)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+
+	for _, id := range ids {
+		item := job{
+			userID: session.UserID,
+			urlID:  id,
+		}
+		h.batchUpdater.deleteURLCh <- item
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) Ping(st storage.Storager) http.HandlerFunc {
@@ -211,9 +249,13 @@ func (h *Handler) GetID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 	v, err := h.Storage.Unshorten(id)
-	if err == nil {
-		http.Redirect(w, r, v, http.StatusTemporaryRedirect)
+	if err != nil {
+		if errors.Is(err, storage.ErrKeyDeleted) {
+			w.WriteHeader(http.StatusGone)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	http.Error(w, err.Error(), http.StatusBadRequest)
+	http.Redirect(w, r, v, http.StatusTemporaryRedirect)
 }
