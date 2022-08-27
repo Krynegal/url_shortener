@@ -6,10 +6,11 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStorage   string `env:"FILE_STORAGE_PATH"`
-	DB            string `env:"DATABASE_DSN"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStorage     string `env:"FILE_STORAGE_PATH"`
+	UpdateBatchSize int    `env:"UPDATE_BATCH_SIZE" envDefault:"10"`
+	DB              string `env:"DATABASE_DSN"`
 }
 
 //envDefault:"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"

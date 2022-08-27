@@ -5,7 +5,10 @@ import (
 	"github.com/Krynegal/url_shortener.git/internal/configs"
 )
 
-var ErrKeyExists = errors.New("url is already shorten")
+var (
+	ErrKeyExists  = errors.New("url is already shorten")
+	ErrKeyDeleted = errors.New("url with this key is deleted")
+)
 
 type Storager interface {
 	Shorten(string, string) (int, error)
